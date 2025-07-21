@@ -1,0 +1,423 @@
+basePath: /api/v1
+definitions:
+  dto.AdvertisementResponse:
+    properties:
+      author_login:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_mine:
+        type: boolean
+      price:
+        type: number
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.AdvertisementShort:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      image_url:
+        type: string
+      price:
+        type: number
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.AuthResponse:
+    properties:
+      user_id:
+        type: integer
+    type: object
+  dto.CreateAdvertisementRequest:
+    properties:
+      description:
+        type: string
+      image_url:
+        type: string
+      price:
+        type: number
+      title:
+        type: string
+    type: object
+  dto.Login:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.LoginResponse:
+    properties:
+      csrf_token:
+        type: string
+    type: object
+  dto.UserProfileResponse:
+    properties:
+      created_at:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      login:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.UserRegister:
+    properties:
+      first_name:
+        type: string
+      last_name:
+        type: string
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  utils.APIError:
+    properties:
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: API веб-приложения Marketplace для публикации объявлений.
+  title: Marketplace API
+  version: 1.0.0
+paths:
+  /ad/{id}:
+    get:
+      description: Возвращает полную информацию об объявлении по его ID. Доступно
+        всем авторизованным пользователям.
+      parameters:
+      - description: ID объявления
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация об объявлении
+          schema:
+            $ref: '#/definitions/dto.AdvertisementShort'
+        "400":
+          description: Неверный ID
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "404":
+          description: Объявление не найдено
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - session_cookie: []
+      summary: Получение объявления по ID
+      tags:
+      - Advertisement
+  /ad/all:
+    get:
+      description: Возвращает список объявлений с поддержкой пагинации, сортировки
+        и фильтрации по цене.
+      parameters:
+      - description: Количество объявлений на странице (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение от начала списка (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Поле сортировки (created_at или price)
+        in: query
+        name: sort
+        type: string
+      - description: Направление сортировки (asc или desc)
+        in: query
+        name: order
+        type: string
+      - description: Минимальная цена фильтрации
+        in: query
+        name: min_price
+        type: number
+      - description: Максимальная цена фильтрации
+        in: query
+        name: max_price
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список объявлений
+          schema:
+            items:
+              $ref: '#/definitions/dto.AdvertisementResponse'
+            type: array
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      summary: Получение всех объявлений
+      tags:
+      - Advertisement
+  /ad/create:
+    post:
+      consumes:
+      - application/json
+      description: Создает новое объявления для авторизованного пользователя. Требует
+        авторизации и CSRF-токена.
+      parameters:
+      - description: Данные для создания объявления
+        in: body
+        name: advertisementData
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAdvertisementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданное объявление
+          schema:
+            $ref: '#/definitions/dto.AdvertisementShort'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "403":
+          description: Доступ запрещен (только для соискателей)
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - csrf_token: []
+      - session_cookie: []
+      summary: Создание нового объявления
+      tags:
+      - Advertisement
+  /auth/isAuth:
+    get:
+      description: Проверяет авторизован пользователь или нет.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - session_cookie: []
+      summary: Проверка авторизации
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      description: Завершает текущую сессию пользователя
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - session_cookie: []
+      - csrf_token: []
+      summary: Выход из системы
+      tags:
+      - Auth
+  /auth/logoutAll:
+    post:
+      description: Завершает все активные сессии пользователя
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - session_cookie: []
+      - csrf_token: []
+      summary: Выход со всех устройств
+      tags:
+      - Auth
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация пользователя. При успешной авторизации отправляет куки
+        с сессией.
+      parameters:
+      - description: Данные для авторизации (login и пароль)
+        in: body
+        name: loginData
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "403":
+          description: Доступ запрещен (неверные учетные данные)
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - csrf_token: []
+      summary: Авторизация пользователя
+      tags:
+      - User
+  /user/profile/{id}:
+    get:
+      description: Возвращает профиль пользователя по ID. Требует авторизации. Доступен
+        только для владельца профиля.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль пользователя
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponse'
+        "400":
+          description: Неверный ID
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "403":
+          description: Нет доступа к этому профилю
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "404":
+          description: Профиль не найден
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - session_cookie: []
+      summary: Получить профиль пользователя
+      tags:
+      - User
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: registerData
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserRegister'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponse'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "409":
+          description: Пользователь уже существует
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - csrf_token: []
+      summary: Регистрация пользователя
+      tags:
+      - User
+securityDefinitions:
+  csrf_token:
+    in: header
+    name: X-CSRF-Token
+    type: apiKey
+  session_cookie:
+    in: cookie
+    name: session_id
+    type: apiKey
+swagger: "2.0"
