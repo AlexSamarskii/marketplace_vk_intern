@@ -29,16 +29,15 @@ func ClearTokenCookies(w http.ResponseWriter) {
 	})
 }
 
-func CreateSession(w http.ResponseWriter, r *http.Request, auth usecase.AuthUsecase, userID int) error {
+func CreateSession(w http.ResponseWriter, r *http.Request, auth usecase.AuthUsecase, userID int) (string, error) {
 	ctx := r.Context()
 	session, err := auth.CreateSession(ctx, userID)
 	if err != nil {
-		WriteAPIError(w, ToAPIError(err))
-		return err
+		return "", err
 	}
 	expirationTime := time.Now().Add(time.Duration(86400) * time.Second)
 	SetSession(w, session, expirationTime)
-	return nil
+	return session, nil
 }
 
 func SetSession(w http.ResponseWriter, value string, expires time.Time) {

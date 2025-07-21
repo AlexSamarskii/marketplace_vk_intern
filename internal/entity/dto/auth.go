@@ -21,7 +21,7 @@ type AuthResponse struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"csrf_token"`
+	Token string `json:"token"`
 }
 
 type LoginExistsRequest struct {

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -62,7 +63,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.CreateSession(w, r, h.auth, user.ID); err != nil {
+	if _, err := utils.CreateSession(w, r, h.auth, user.ID); err != nil {
 		utils.WriteAPIError(w, utils.ToAPIError(err))
 		return
 	}
@@ -115,17 +116,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.CreateSession(w, r, h.auth, userID); err != nil {
+	token, err := utils.CreateSession(w, r, h.auth, userID)
+	if err != nil {
 		utils.WriteAPIError(w, utils.ToAPIError(err))
 		return
 	}
 
 	middleware.SetCSRFToken(w, r, h.cfg)
-
-	csrfToken := w.Header().Get("X-CSRF-Token")
-
+	fmt.Println(token)
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(dto.LoginResponse{Token: csrfToken}); err != nil {
+	if err = json.NewEncoder(w).Encode(dto.LoginResponse{Token: token}); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, entity.ErrInternal)
 		return
 	}

@@ -79,12 +79,26 @@ func (r *UserRepository) Create(ctx context.Context, login, name, surname string
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
-			case "23505": // unique_violation
-				return nil, fmt.Errorf("пользователь с таким логином уже существует: %w", err)
-			case "23502": // not_null_violation
-				return nil, fmt.Errorf("обязательное поле отсутствует: %w", err)
-			case "23514": // check_violation
-				return nil, fmt.Errorf("нарушено условие проверки: %w", err)
+			case entity.PSQLUniqueViolation: // Уникальное ограничение
+				return nil, entity.NewError(
+					entity.ErrAlreadyExists,
+					fmt.Errorf("такой работодатель уже зарегистрирован"),
+				)
+			case entity.PSQLNotNullViolation: // NOT NULL ограничение
+				return nil, entity.NewError(
+					entity.ErrBadRequest,
+					fmt.Errorf("обязательное поле отсутствует"),
+				)
+			case entity.PSQLDatatypeViolation: // Ошибка типа данных
+				return nil, entity.NewError(
+					entity.ErrBadRequest,
+					fmt.Errorf("неправильный формат данных"),
+				)
+			case entity.PSQLCheckViolation: // Ошибка constraint
+				return nil, entity.NewError(
+					entity.ErrBadRequest,
+					fmt.Errorf("неправильные данные"),
+				)
 			}
 		}
 
@@ -168,7 +182,10 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*entity.
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("пользователь с логином=%s не найден: %w", login, err)
+			return nil, entity.NewError(
+				entity.ErrNotFound,
+				fmt.Errorf("пользователь с логином %s не найден", login),
+			)
 		}
 
 		logger.Log.WithFields(logrus.Fields{
@@ -177,7 +194,7 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*entity.
 			"error":     err,
 		}).Error("Ошибка при получении пользователя")
 
-		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
+		return nil, entity.NewError(entity.ErrInternal, err)
 	}
 
 	return scanUser.GetEntity(), nil

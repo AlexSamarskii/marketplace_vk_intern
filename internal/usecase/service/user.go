@@ -59,24 +59,22 @@ func (e *UserService) Register(ctx context.Context, registerDTO *dto.UserRegiste
 
 func (e *UserService) Login(ctx context.Context, loginDTO *dto.Login) (int, error) {
 	if err := entity.ValidateLogin(loginDTO.Login); err != nil {
-		return -1, err
+		return 0, entity.NewError(entity.ErrBadRequest, err)
 	}
-
 	if err := entity.ValidatePassword(loginDTO.Password); err != nil {
-		return -1, err
+		return 0, entity.NewError(entity.ErrBadRequest, err)
 	}
 
 	employer, err := e.userRepo.GetByLogin(ctx, loginDTO.Login)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
-	if entity.CheckPassword(loginDTO.Password, employer.PasswordHash, employer.PasswordSalt) {
-		return employer.ID, nil
+
+	if !entity.CheckPassword(loginDTO.Password, employer.PasswordHash, employer.PasswordSalt) {
+		return 0, entity.NewError(entity.ErrUnauthorized, fmt.Errorf("неверные учетные данные"))
 	}
-	return -1, entity.NewError(
-		entity.ErrForbidden,
-		fmt.Errorf("неверный пароль"),
-	)
+
+	return employer.ID, nil
 }
 
 func (e *UserService) GetUser(ctx context.Context, employerID int) (*dto.UserProfileResponse, error) {

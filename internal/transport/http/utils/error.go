@@ -24,19 +24,22 @@ var errorToStatus = map[error]int{
 
 func ToAPIError(err error) APIError {
 	var apiError APIError
-	var customError entity.Error
+	var customError *entity.Error
+
 	if errors.As(err, &customError) {
-		apiError.Message = customError.InternalErr().Error()
-		svcError := customError.ClientErr()
-		if status, found := errorToStatus[svcError]; found {
+		client := customError.ClientErr()
+		apiError.Message = customError.ClientErr().Error()
+
+		if status, ok := errorToStatus[client]; ok {
 			apiError.Status = status
 		} else {
 			apiError.Status = http.StatusInternalServerError
 		}
-	} else {
-		apiError.Message = "internal server error"
-		apiError.Status = http.StatusInternalServerError
+		return apiError
 	}
+
+	apiError.Message = "internal server error"
+	apiError.Status = http.StatusInternalServerError
 	return apiError
 }
 
